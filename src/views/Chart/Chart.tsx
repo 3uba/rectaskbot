@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, Time } from 'lightweight-charts';
 import Button from '../../components/Button/Button';
 import TodoList from '../../components/TodoList/TodoList';
+import { Link } from 'react-router-dom';
 
 function Chart() {
     const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -48,7 +49,6 @@ function Chart() {
             }
             const time = (date.getTime() / 1000) as Time;
             let value = samplePoint(i);
-			console.log(value)
             const diff = (value - previousValue) * Math.random();
             value = previousValue + diff;
             previousValue = value;
@@ -125,6 +125,9 @@ function Chart() {
 
     return (
         <>
+            <Link to='/'>
+                <Button text='Home' />
+            </Link>
             <div ref={chartContainerRef} className='chart-container' />
             <div>
                 <Button text='Go to realtime' onClick={() => chartRef.current?.timeScale().scrollToRealTime()} />
