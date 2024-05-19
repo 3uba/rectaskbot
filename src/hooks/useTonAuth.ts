@@ -22,8 +22,6 @@ export function useTonAuth() {
     const cookies = new Cookies(); 
 
     useEffect(() => {
-        return;
-
         if (!isConnectionRestored || !setToken) {
             return;
         }
@@ -49,7 +47,8 @@ export function useTonAuth() {
             return;
         }
 
-        const token = cookies.get(AUTH_COOKIE); 
+        // const token = cookies.get(AUTH_COOKIE); 
+        const token = "test"; // todo: ogarnac weryfikacje z backendem
         if (token) {
             setToken(token);
             return;
