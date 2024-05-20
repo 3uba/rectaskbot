@@ -1,17 +1,13 @@
 import { useContext, useEffect, useRef } from "react";
-import { useIsConnectionRestored, useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
-import axios from "axios";
-import Cookies from "universal-cookie";
+import { ConnectAdditionalRequest, useIsConnectionRestored, useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import { AuthContext } from "../store/AuthContext";
+import axios from "axios";
 
-const AUTH_COOKIE = 'jwt';
-const TOKEN_TTL = 1000 * 60 * 20;
+import config from "../../config.json";
 
-interface AuthenticateResponse {
-    ok: boolean;
-    token?: string;
-    error?: string;
-}
+const LOCALSTORAGE_KEY = 'token';
+const PAYLOAD_TTLMS = 1000 * 60 * 20;
+const SERVER_URL = config.apiUrl;
 
 export function useTonAuth() {
     const { token, setToken } = useContext(AuthContext);
@@ -19,7 +15,6 @@ export function useTonAuth() {
     const wallet = useTonWallet();
     const [tonConnectUI] = useTonConnectUI();
     const interval = useRef<ReturnType<typeof setInterval> | undefined>();
-    const cookies = new Cookies(); 
 
     useEffect(() => {
         if (!isConnectionRestored || !setToken) {
@@ -29,60 +24,58 @@ export function useTonAuth() {
         clearInterval(interval.current);
 
         if (!wallet) {
-            cookies.remove(AUTH_COOKIE); 
+            localStorage.removeItem(LOCALSTORAGE_KEY);
             setToken(null);
 
             const refreshPayload = async () => {
-                // tonConnectUI.setConnectRequestParameters({ state: 'loading' });
-                // const value = await backendAuth.generatePayload();
-                // if (!value) {
-                //     tonConnectUI.setConnectRequestParameters(null);
-                // } else {
-                //     tonConnectUI.setConnectRequestParameters({state: 'ready', value});
-                // }
+                tonConnectUI.setConnectRequestParameters({ state: 'loading' });
+
+                const response = await axios.get<ConnectAdditionalRequest>(`${SERVER_URL}/auth/generatePayload`);
+                const value = response.data
+
+                if (!value) {
+                    tonConnectUI.setConnectRequestParameters(null);
+                } else {
+                    // @ts-ignore
+                    tonConnectUI.setConnectRequestParameters({state: 'ready', value});
+                }
             }
 
             refreshPayload();
-            setInterval(refreshPayload, TOKEN_TTL);
+            setInterval(refreshPayload, PAYLOAD_TTLMS);
             return;
         }
 
-        // const token = cookies.get(AUTH_COOKIE); 
-        const token = "test"; // todo: ogarnac weryfikacje z backendem
-        if (token) {
-            setToken(token);
+        const storedToken = localStorage.getItem(LOCALSTORAGE_KEY);
+        if (storedToken) {
+            setToken(storedToken);
             return;
         }
 
         if (wallet.connectItems?.tonProof && !('error' in wallet.connectItems.tonProof)) {
-            axios.post<AuthenticateResponse>("", {
-                proof: wallet.connectItems.tonProof.proof, 
+            axios.post(`${SERVER_URL}/auth/checkProof`, {
+                proof: wallet.connectItems.tonProof.proof,
                 account: wallet.account
-            }).then((result) => {
-                if (result.data.token?.length) {
-                    setToken(result.data.token);
-                    cookies.set(AUTH_COOKIE, result.data.token, { path: '/' }); 
+            }).then(result => {
+                console.log(result)
+                if (result.data) {
+                    setToken(result.data);
+                    localStorage.setItem(LOCALSTORAGE_KEY, result.data);
                 } else {
-                    alert('Please try another wallet');
+                    alert('Please try another wallet1');
                     tonConnectUI.disconnect();
                 }
-            }).catch((error) => {
-                console.log(error)
-            })
+            }).catch(e => {
+                console.error(e);
+                alert('Please try another wallet2');
+                tonConnectUI.disconnect();
+            });
         } else {
-            alert('Please try another wallet');
+            alert('Please try another wallet3');
             tonConnectUI.disconnect();
         }
 
-    }, [wallet, isConnectionRestored, setToken])
+    }, [wallet, isConnectionRestored, setToken]);
 
-    const login = (token: string) => {
-        setToken(token)
-    }
-
-    const logout = () => {
-        setToken(null)
-    }
-
-    return { login, logout, token, setToken }
+    return { setToken, token };
 }
