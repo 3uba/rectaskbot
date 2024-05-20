@@ -60,18 +60,18 @@ export function useTonAuth() {
                 console.log(result)
                 if (result.data) {
                     setToken(result.data);
-                    localStorage.setItem(LOCALSTORAGE_KEY, result.data);
+                    // localStorage.setItem(LOCALSTORAGE_KEY, result.data);
                 } else {
-                    alert('Please try another wallet1');
+                    alert('Please try another wallet code:1');
                     tonConnectUI.disconnect();
                 }
             }).catch(e => {
                 console.error(e);
-                alert('Please try another wallet2');
+                alert('Please try another wallet code:2');
                 tonConnectUI.disconnect();
             });
         } else {
-            alert('Please try another wallet3');
+            alert('Please try another wallet code:3');
             tonConnectUI.disconnect();
         }
 
